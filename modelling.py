@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 
 import logicmin
-import copy
-import numpy as np
 import math
+import sys
 from functools import reduce
 
 def bug_with(argument = -1):
@@ -133,7 +132,8 @@ def get_formulas(header, arr):
         bin_state = bin_state if len(bin_state) == num_of_inputs else "0" * (num_of_inputs-len(bin_state)) + bin_state
         t.add(bin_state,reduce(lambda x, y: str(x)+str(y), arr[i][1:]))
     sols = t.solve()
-    print(sols.printN(xnames=[chr(i) for i in range(ord('a'), ord('a') + num_of_inputs)],ynames=headers[1:]))
+    tmp = sols.printN(xnames=[chr(i) for i in range(ord('a'), ord('a') + num_of_inputs)],ynames=headers[1:])
+    print(tmp.replace("<=","=").replace(".",""))
 
 def print_table(header, table):
     header_str = ("{:>4} " * len(header))
@@ -143,6 +143,19 @@ def print_table(header, table):
         current_str = ("{:>4} " * len(i))
         current_str = current_str.format(*i)
         print(current_str)
+
+def get_csv(header, table):
+    lines = []
+    lines.append(",".join(header))
+    for i in table:
+        lines.append(",".join(list(map(lambda s: str(s), i))))
+    return lines
+
+def record_to_file(lines, filename):
+    f = open(filename, 'w')
+    for line in lines:
+        f.write(line + "\n")
+    f.close()
 
 def print_equivalents(headers, arr):
     values = {}
@@ -160,7 +173,7 @@ def print_equivalents(headers, arr):
             classes[value].append(key)
         else:
             classes[value] = [key]
-    if len(classes[correct]) > 0:
+    if correct in classes:
         print("Избыточные неисправности:", *classes[correct])
     for k, v in classes.items():
         if k != correct and len(v) > 1:
@@ -174,23 +187,32 @@ def print_equivalents(headers, arr):
             print("Тестовые наборы: ", *tests)
 
 land = lambda args: int(reduce(lambda x, y: x and y, args))
+lor = lambda args: int(reduce(lambda x, y: x or y, args))
 lnot = lambda args: int(not args[0])
 lyes = lambda args: int(args[0])
-lor = lambda args: int(reduce(lambda x, y: x or y, args))
 lnand = lambda args: int(not reduce(lambda x, y: x and y, args))
+lnor = lambda args: int(not reduce(lambda x, y: x or y, args))
 
-schema = Schema(['a','b','c','d','e'])
-schema.add_element('q',['b','d'],land)
-schema.add_element('g',['c','d'],lnand)
-schema.add_element('k',['a','q'],land)
-schema.add_element('l',['q','g'],lnand)
-schema.add_element('m',['k','g'],lnand)
-schema.add_element('n',['l','e'],land)
-schema.add_element('p',['k','n'],land)
-schema.add_element('z',['m','p'],lor)
+if __name__ == "__main__":
+    schema = Schema(['a','b','c','d','e'])
+    schema.add_element('l',['a'],lyes)
+    schema.add_element('m',['b'],lyes)
+    schema.add_element('n',['c'],lyes)
+    schema.add_element('o',['d'],lyes)
+    schema.add_element('p',['e'],lyes)
+    schema.add_element('f',['l','m'],land)
+    schema.add_element('g',['m','o'],land)
+    schema.add_element('h',['n','o'],lnand)
+    schema.add_element('i',['f','h'],lnand)
+    schema.add_element('j',['g','h'],lnand)
+    schema.add_element('k',['j','p'],land)
+    schema.add_element('z',['i','k'],lor)
 
-results = schema.check_all_constant()
-headers, arr = output_format(results)
-print_table(headers, arr)
-print_equivalents(headers, arr)
-get_formulas(headers,arr)
+    results = schema.check_all_constant()
+    headers, arr = output_format(results)
+    print_table(headers, arr)
+    print_equivalents(headers, arr)
+    get_formulas(headers,arr)
+    if len(sys.argv) >= 2:
+        record_to_file(get_csv(headers,arr), sys.argv[1])
+    
