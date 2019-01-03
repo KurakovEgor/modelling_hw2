@@ -2,7 +2,7 @@
 This script allow you to get all data for BMSTU Modelling HW2
 ## Installing
 Clone this repository and run:
-`pip3 install -r requiваваrements.txt`
+`pip3 install -r requirements.txt`
 
 ## How to use
 Open modelling.py in your IDE and fix schema according to your variant
